@@ -1,0 +1,12 @@
+
+flask
+langgraph
+langchain
+langchain-openai
+python-dotenv
+fastapi
+uvicorn
+langgraph
+langchain
+langchain-openai
+pydantic
