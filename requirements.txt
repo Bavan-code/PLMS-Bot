@@ -1,12 +1,11 @@
-
-flask
-langgraph
-langchain
-langchain-openai
 python-dotenv
 fastapi
 uvicorn
 langgraph
 langchain
-langchain-openai
 pydantic
+flask
+langchain-google-genai
+python-docx
+PyPDF2
+gunicorn

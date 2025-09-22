@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Personal Learning Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 flex h-screen transition-colors duration-500">
+
+  <!-- Sidebar -->
+  <aside class="hidden md:flex flex-col w-64 bg-gray-800 border-r border-gray-700 p-4">
+    <h2 class="text-xl font-bold mb-4">PLMS</h2>
+    <div class="space-y-2 overflow-y-auto flex-1">
+    </div>
+    <button id="themeToggle" class="mt-4 bg-gray-700 px-3 py-2 rounded-lg hover:bg-gray-600">🌙 Dark Mode</button>
+  </aside>
+
+  <!-- Main Chat -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900 sticky top-0 z-10">
+      <h2 class="text-lg font-semibold">Personal Learning Management System</h2>
+    </header>
+
+    <!-- Chat Area -->
+    <main id="chat" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-900">
+      <div class="msg bot bg-gray-700 text-gray-200 px-4 py-2 rounded-xl inline-block">
+         Hello! I am your Personal Learning Management System. How can I help you today?
+      </div>
+    </main>
+
+    <!-- Typing Indicator -->
+    <div id="typing" class="hidden px-6 py-2 text-sm text-gray-400">PLMS is thinking...</div>
+
+    <!-- File Preview -->
+<div id="filePreview" class="hidden items-center gap-2 text-sm text-gray-200 bg-gray-700 px-3 py-1 rounded-lg w-fit ml-4 mb-2">
+  📎 <span id="fileName"></span>
+  <button type="button" id="removeFile" class="ml-2 text-red-400 hover:text-red-600">✖</button>
+</div>
+
+    <!-- Input Area -->
+    <form id="chatForm" class="p-4 border-t border-gray-700 bg-gray-900 flex items-center gap-2" enctype="multipart/form-data">
+      <label for="file" class="cursor-pointer bg-gray-700 px-3 py-2 rounded-lg hover:bg-gray-600">📎</label>
+      <input type="file" id="file" name="file" class="hidden"/>
+      <input type="text" id="message" name="message" placeholder="Type your message..."
+             class="flex-1 px-4 py-3 rounded-full bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      <button type="submit" class="bg-blue-600 px-6 py-3 rounded-full hover:bg-blue-500">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const chatForm = document.getElementById("chatForm");
+    const chatBox = document.getElementById("chat");
+    const typing = document.getElementById("typing");
+    const themeToggle = document.getElementById("themeToggle");
+    const fileInput = document.getElementById("file");
+    const filePreview = document.getElementById("filePreview");
+    const fileName = document.getElementById("fileName");
+    const removeFile = document.getElementById("removeFile");
+
+    // Show file preview when chosen
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        filePreview.classList.remove("hidden");
+        fileName.textContent = fileInput.files[0].name;
+      }
+    });
+
+    // Remove file
+    removeFile.addEventListener("click", () => {
+      fileInput.value = "";
+      filePreview.classList.add("hidden");
+      fileName.textContent = "";
+    });
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("message").value;
+      const file = fileInput.files[0];
+      if (!msg && !file) return;
+
+      // Show user message
+      if (msg) addMessage("user", msg);
+
+      // Show file attachment as separate bubble
+      if (file) addMessage("user", `📎 Attached: ${file.name}`);
+
+      typing.classList.remove("hidden");
+
+
+      const formData = new FormData();
+      formData.append("message", msg);
+      if (file) formData.append("file", file);
+
+      const res = await fetch("/chat", { method: "POST", body: formData });
+      const data = await res.json();
+
+      typing.classList.add("hidden");
+      addMessage("bot", data.answer);
+      chatForm.reset();
+      document.getElementById("file").value = "";
+    });
+
+    function addMessage(sender, text) {
+      const div = document.createElement("div");
+      div.className = `msg px-4 py-2 rounded-xl max-w-[70%] animate-fadeIn 
+        ${sender === "user" 
+          ? "bg-blue-600 text-white self-end ml-auto" 
+          : "bg-gray-700 text-gray-200 self-start"}`;
+
+      if (text.includes("```")) {
+        const codeMatch = text.match(/```(.*?)```/s);
+        if (codeMatch) {
+          const code = codeMatch[1].trim();
+          div.innerHTML = `<pre class="relative"><code class="language-python">${code}</code></pre>
+                           <button class="absolute top-1 right-1 bg-gray-600 px-2 py-1 rounded text-sm"
+                                   onclick="navigator.clipboard.writeText(\`${code}\`)">📋</button>`;
+          Prism.highlightAll();
+        } else {
+          div.textContent = text;
+        }
+      } else {
+        div.textContent = text;
+      }
+
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("bg-white");
+      document.body.classList.toggle("text-black");
+      document.querySelectorAll("header, main, form, aside").forEach(el => {
+        el.classList.toggle("bg-white");
+        el.classList.toggle("bg-gray-900");
+      });
+    });
+  </script>
+
+  <style>
+    @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
+  </style>
+</body>
+</html>
